@@ -158,6 +158,77 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+  // Update Profile
+  Future<bool> updateProfile({
+    required String nik,
+    required String address,
+    required String noDarurat,
+    required String ktpPhotoPath,
+    required String photoWithNikPath,
+  }) async {
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      FormData formData = FormData.fromMap({
+        'nik': nik,
+        'address': address,
+        'no_darurat': noDarurat,
+        'ktp_photo': await MultipartFile.fromFile(ktpPhotoPath),
+        'photo_with_nik': await MultipartFile.fromFile(photoWithNikPath),
+      });
+
+      final response = await _apiClient.post('/profile', data: formData);
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        _setLoading(false);
+        return true;
+      } else {
+        _setErrorMessage(
+          response.data['message'] ?? 'Failed to update profile',
+        );
+        _setLoading(false);
+        return false;
+      }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _setErrorMessage(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  // Cek Kelengkapan Profil
+  Future<bool?> checkProfile() async {
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      final response = await _apiClient.get('/profile/check');
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = response.data['data'];
+        _setLoading(false);
+        return data['is_verified'] == true;
+      } else {
+        _setErrorMessage(response.data['message'] ?? 'Failed to check profile');
+        _setLoading(false);
+        return null;
+      }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      _setLoading(false);
+      return null;
+    } catch (e) {
+      _setErrorMessage(e.toString());
+      _setLoading(false);
+      return null;
+    }
+  }
+
   // Logout
   Future<bool> logout() async {
     _setLoading(true);

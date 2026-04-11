@@ -127,6 +127,76 @@ class OrderViewModel extends ChangeNotifier {
     }
   }
 
+  // Create a new order
+  Future<Map<String, dynamic>> createOrder(
+    int costumId,
+    int pcs,
+    String startDate,
+    String endDate,
+  ) async {
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      final response = await _apiClient.post(
+        '/orders',
+        data: {
+          'costum_id': costumId,
+          'pcs': pcs,
+          'start_date': startDate,
+          'end_date': endDate,
+        },
+      );
+
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          response.data['success'] == true) {
+        final data = response.data;
+        return {
+          'success': true,
+          'verified': data['verified'] ?? true,
+          'order_id': data['data']?['id'],
+        };
+      } else {
+        _setErrorMessage(response.data['message'] ?? 'Failed to create order');
+        return {'success': false};
+      }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      return {'success': false};
+    } catch (e) {
+      _setErrorMessage(e.toString());
+      return {'success': false};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Get static QRIS image URL
+  Future<String?> getStaticQris() async {
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      final response = await _apiClient.get('/orders/qris');
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = response.data['data'];
+        return data['qris_image_url']?.toString();
+      } else {
+        _setErrorMessage(response.data['message'] ?? 'Failed to load QRIS');
+        return null;
+      }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      return null;
+    } catch (e) {
+      _setErrorMessage(e.toString());
+      return null;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _handleDioError(DioException e) {
     if (e.response != null) {
       final responseData = e.response?.data;

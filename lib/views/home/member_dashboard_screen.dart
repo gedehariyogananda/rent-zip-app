@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../viewmodels/order_viewmodel.dart';
@@ -22,6 +23,7 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
   int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  Timer? _notificationTimer;
   String? _selectedLokasi;
   int? _selectedAnimeId;
   int? _selectedBrandId;
@@ -45,10 +47,21 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
     });
 
     _scrollController.addListener(_onScroll);
+
+    // Polling notifikasi setiap 1 menit
+    _notificationTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) {
+        Provider.of<NotificationViewModel>(
+          context,
+          listen: false,
+        ).fetchUnreadNotifications();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _notificationTimer?.cancel();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -1197,6 +1210,11 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
           showUnselectedLabels: true,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           onTap: (index) {
+            Provider.of<NotificationViewModel>(
+              context,
+              listen: false,
+            ).fetchUnreadNotifications();
+
             if (index == 0) {
               final vm = Provider.of<CostumViewModel>(context, listen: false);
               vm.clearFilters();

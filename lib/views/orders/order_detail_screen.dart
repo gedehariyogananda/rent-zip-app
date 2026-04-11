@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/order_viewmodel.dart';
 
 class OrderDetailScreen extends StatefulWidget {
@@ -265,7 +266,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildQrisRow(BuildContext context, dynamic order) {
-    final qrisUrl = order.qris;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -280,24 +280,86 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ),
           ),
           GestureDetector(
-            onTap: () {
+            onTap: () async {
+              final authVm = Provider.of<AuthViewModel>(context, listen: false);
+              final orderVm = Provider.of<OrderViewModel>(
+                context,
+                listen: false,
+              );
+
+              final isVerified = await authVm.checkProfile();
+
+              if (!context.mounted) return;
+
+              if (isVerified == false) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Silakan lengkapi profil Anda di pengaturan profil terlebih dahulu.',
+                    ),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+
+              final qrisUrl = await orderVm.getStaticQris();
+
+              if (!context.mounted) return;
+
               if (qrisUrl != null && qrisUrl.isNotEmpty) {
-                showDialog(
+                showModalBottomSheet(
                   context: context,
-                  builder: (_) => Dialog(
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                    ),
+                    padding: EdgeInsets.only(
+                      left: 24,
+                      right: 24,
+                      top: 24,
+                      bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        const Text(
+                          'Pembayaran QRIS',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3B5226),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Silakan scan QRIS dan bayar sesuai nominal yaitu ${_formatCurrency(order.total)}. Lalu nanti konfirmasi pesanan akan diarahkan ke WhatsApp, silakan sekalian lampirkan bukti foto transfer ya.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFF3B5226),
+                              width: 2,
+                            ),
                           ),
                           padding: const EdgeInsets.all(16),
                           child: Image.network(
-                            'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=$qrisUrl',
+                            qrisUrl,
+                            height: 250,
                             fit: BoxFit.contain,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
@@ -316,65 +378,92 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 16,
+                        const SizedBox(height: 24),
+                        Row(
                           children: [
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: const Color(0xFF3B5226),
+                            Expanded(
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  side: const BorderSide(
+                                    color: Color(0xFF3B5226),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text(
+                                  'Tutup',
+                                  style: TextStyle(
+                                    color: Color(0xFF3B5226),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Tutup'),
                             ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3B5226),
-                                foregroundColor: Colors.white,
-                              ),
-                              onPressed: () async {
-                                Navigator.pop(context);
-                                final message =
-                                    'Halo Admin Noctoriagoras, saya sudah membayar pesanan dengan Kode Booking: ${order.codeBooking ?? '-'}. Mohon segera dikonfirmasi. Terima kasih!';
-                                final url = Uri.parse(
-                                  'whatsapp://send?phone=${AppConstants.whatsappNumber}&text=${Uri.encodeComponent(message)}',
-                                );
-                                final fallbackUrl = Uri.parse(
-                                  'https://wa.me/${AppConstants.whatsappNumber}?text=${Uri.encodeComponent(message)}',
-                                );
-                                try {
-                                  if (await canLaunchUrl(url)) {
-                                    await launchUrl(url);
-                                  } else {
-                                    await launchUrl(
-                                      fallbackUrl,
-                                      mode: LaunchMode.externalApplication,
-                                    );
-                                  }
-                                } catch (_) {
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  backgroundColor: const Color(0xFF3B5226),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () async {
+                                  Navigator.pop(context);
+                                  final message =
+                                      'Halo Admin Noctoriagoras, saya sudah membayar pesanan dengan Kode Booking: ${order.codeBooking ?? '-'} senilai ${_formatCurrency(order.total)}. Berikut saya lampirkan bukti foto transfernya. Mohon segera dikonfirmasi. Terima kasih!';
+                                  final url = Uri.parse(
+                                    'whatsapp://send?phone=${AppConstants.whatsappNumber}&text=${Uri.encodeComponent(message)}',
+                                  );
+                                  final fallbackUrl = Uri.parse(
+                                    'https://wa.me/${AppConstants.whatsappNumber}?text=${Uri.encodeComponent(message)}',
+                                  );
                                   try {
-                                    await launchUrl(
-                                      fallbackUrl,
-                                      mode: LaunchMode.externalApplication,
-                                    );
-                                  } catch (_) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Gagal membuka WhatsApp',
-                                          ),
-                                        ),
+                                    if (await canLaunchUrl(url)) {
+                                      await launchUrl(url);
+                                    } else {
+                                      await launchUrl(
+                                        fallbackUrl,
+                                        mode: LaunchMode.externalApplication,
                                       );
                                     }
+                                  } catch (_) {
+                                    try {
+                                      await launchUrl(
+                                        fallbackUrl,
+                                        mode: LaunchMode.externalApplication,
+                                      );
+                                    } catch (_) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Gagal membuka WhatsApp',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
                                   }
-                                }
-                              },
-                              child: const Text('Konfirmasi Pembayaran'),
+                                },
+                                child: const Text(
+                                  'Konfirmasi Pembayaran',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
                           ],
                         ),

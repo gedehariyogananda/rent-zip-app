@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../viewmodels/costum_viewmodel.dart';
+import '../../viewmodels/order_viewmodel.dart';
+import 'widgets/rent_bottom_sheet.dart';
 import 'package:intl/intl.dart';
 
 class CostumDetailScreen extends StatefulWidget {
@@ -347,9 +349,14 @@ class _CostumDetailScreenState extends State<CostumDetailScreen> {
                   ElevatedButton(
                     onPressed: isAvailable
                         ? () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Fitur Sewa segera hadir!'),
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => RentBottomSheet(
+                                costumId: costum.id!,
+                                maxStock: costum.availableStock ?? 1,
+                                pricePer3Days: costum.priceday ?? 0,
                               ),
                             );
                           }

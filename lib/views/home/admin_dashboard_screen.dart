@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
@@ -14,9 +15,25 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  Timer? _notificationTimer;
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    _notificationTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) {
+        Provider.of<NotificationViewModel>(
+          context,
+          listen: false,
+        ).fetchUnreadNotifications();
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<NotificationViewModel>(
         context,
