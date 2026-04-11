@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../viewmodels/order_viewmodel.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../viewmodels/auth_viewmodel.dart';
@@ -7,6 +9,7 @@ import '../../viewmodels/costum_viewmodel.dart';
 import '../auth/login_screen.dart';
 import '../notifications/notification_screen.dart';
 import '../costum/costum_detail_screen.dart';
+import '../orders/order_detail_screen.dart';
 
 class MemberDashboardScreen extends StatefulWidget {
   const MemberDashboardScreen({super.key});
@@ -22,6 +25,9 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
   String? _selectedLokasi;
   int? _selectedAnimeId;
   int? _selectedBrandId;
+  String _selectedOrderStatus = '';
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
 
   @override
   void initState() {
@@ -55,6 +61,60 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
       lokasi: _selectedLokasi,
       sourceAnimeCategoryId: _selectedAnimeId,
       brandCostumCategoryId: _selectedBrandId,
+    );
+  }
+
+  Future<void> _selectDateRange(BuildContext context) async {
+    final initialDateRange = _filterStartDate != null && _filterEndDate != null
+        ? DateTimeRange(start: _filterStartDate!, end: _filterEndDate!)
+        : null;
+
+    final pickedRange = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      initialDateRange: initialDateRange,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF3B5226),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF3B5226),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedRange != null) {
+      setState(() {
+        _filterStartDate = pickedRange.start;
+        _filterEndDate = pickedRange.end;
+      });
+      _fetchOrdersWithFilters();
+    }
+  }
+
+  void _clearDateFilter() {
+    setState(() {
+      _filterStartDate = null;
+      _filterEndDate = null;
+    });
+    _fetchOrdersWithFilters();
+  }
+
+  void _fetchOrdersWithFilters() {
+    final orderVM = Provider.of<OrderViewModel>(context, listen: false);
+    orderVM.fetchOrders(
+      status: _selectedOrderStatus.isEmpty ? null : _selectedOrderStatus,
+      startDate: _filterStartDate != null
+          ? DateFormat('yyyy-MM-dd').format(_filterStartDate!)
+          : null,
+      endDate: _filterEndDate != null
+          ? DateFormat('yyyy-MM-dd').format(_filterEndDate!)
+          : null,
     );
   }
 
@@ -387,6 +447,19 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                   );
                 }
 
+                if (vm.errorMessage != null && vm.costums.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Text(
+                        vm.errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+
                 if (vm.costums.isEmpty) {
                   return const Center(
                     child: Padding(
@@ -476,6 +549,19 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
+                if (vm.errorMessage != null && vm.costums.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        vm.errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+
                 if (vm.costums.isEmpty) {
                   return const Center(
                     child: Text(
@@ -550,6 +636,7 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (c, e, s) => Container(
+                          width: double.infinity,
                           color: Colors.white,
                           child: const Icon(
                             Icons.image,
@@ -559,6 +646,7 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                         ),
                       )
                     : Container(
+                        width: double.infinity,
                         color: Colors.white,
                         child: const Icon(
                           Icons.image,
@@ -687,6 +775,350 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
     );
   }
 
+  Widget _buildTransactionTab() {
+    return Column(
+      children: [
+        // Dropdown Filter
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7CA66D),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.black, width: 1.2),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedOrderStatus,
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Colors.black,
+                    ),
+                    dropdownColor: const Color(0xFF7CA66D),
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: '', child: Text('Semua Status')),
+                      DropdownMenuItem(
+                        value: 'pending',
+                        child: Text('Menunggu'),
+                      ),
+                      DropdownMenuItem(value: 'paid', child: Text('Dibayar')),
+                      DropdownMenuItem(value: 'done', child: Text('Selesai')),
+                      DropdownMenuItem(
+                        value: 'canceled',
+                        child: Text('Dibatalkan'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedOrderStatus = val ?? '';
+                      });
+                      _fetchOrdersWithFilters();
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _selectDateRange(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7CA66D),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.black, width: 1.2),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _filterStartDate != null && _filterEndDate != null
+                            ? '${DateFormat('dd/MM').format(_filterStartDate!)} - ${DateFormat('dd/MM').format(_filterEndDate!)}'
+                            : 'Semua Tanggal',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      if (_filterStartDate != null)
+                        GestureDetector(
+                          onTap: _clearDateFilter,
+                          child: const Icon(
+                            Icons.close,
+                            size: 18,
+                            color: Colors.black,
+                          ),
+                        )
+                      else
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 16,
+                          color: Colors.black,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // List Transaksi
+        Expanded(
+          child: Consumer<OrderViewModel>(
+            builder: (context, orderVM, child) {
+              if (orderVM.isLoading && orderVM.orders.isEmpty) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF3B5226)),
+                );
+              }
+
+              // Local filter untuk mengamankan jika API belum mendukung argumen status
+              final filteredOrders = orderVM.orders.where((order) {
+                if (_selectedOrderStatus.isEmpty) return true;
+                return order.status?.toLowerCase() == _selectedOrderStatus;
+              }).toList();
+
+              if (filteredOrders.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'Belum ada transaksi.',
+                    style: TextStyle(fontSize: 16, color: Color(0xFF3B5226)),
+                  ),
+                );
+              }
+
+              return RefreshIndicator(
+                onRefresh: () async => _fetchOrdersWithFilters(),
+                color: const Color(0xFF3B5226),
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filteredOrders.length,
+                  itemBuilder: (context, index) {
+                    final order = filteredOrders[index];
+
+                    // Format tanggal
+                    String dateDisplay = '-';
+                    if (order.createdAt != null &&
+                        order.createdAt!.length >= 10) {
+                      try {
+                        final dt = DateTime.parse(order.createdAt!);
+                        final months = [
+                          'Januari',
+                          'Februari',
+                          'Maret',
+                          'April',
+                          'Mei',
+                          'Juni',
+                          'Juli',
+                          'Agustus',
+                          'September',
+                          'Oktober',
+                          'November',
+                          'Desember',
+                        ];
+                        dateDisplay =
+                            '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+                      } catch (_) {
+                        dateDisplay = order.createdAt!.substring(0, 10);
+                      }
+                    }
+
+                    String statusIndo = order.status ?? '-';
+                    switch (order.status?.toLowerCase()) {
+                      case 'pending':
+                        statusIndo = 'Menunggu';
+                        break;
+                      case 'paid':
+                        statusIndo = 'Dibayar';
+                        break;
+                      case 'done':
+                        statusIndo = 'Selesai';
+                        break;
+                      case 'canceled':
+                        statusIndo = 'Dibatalkan';
+                        break;
+                    }
+
+                    return GestureDetector(
+                      onTap: () async {
+                        if (order.id != null) {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  OrderDetailScreen(orderId: order.id!),
+                            ),
+                          );
+                          _fetchOrdersWithFilters();
+                        }
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCED8AF),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF3B5226),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      dateDisplay,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF3B5226),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      order.codeBooking ?? '-',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF7CA66D),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF7CA66D),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    statusIndo,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(
+                              color: Color(0xFF3B5226),
+                              thickness: 1,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Detail Transaksi',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF3B5226),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (order.items != null)
+                              ...order.items!.map((item) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 4.0),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '- ${item.costum?.name ?? 'Kostum'}',
+                                          style: const TextStyle(
+                                            color: Color(0xFF3B5226),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${item.costum?.priceday != null ? NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(double.tryParse(item.costum!.priceday!) ?? 0) : '-'} x ${item.pcs ?? 1}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF3B5226),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            const SizedBox(height: 12),
+                            const Divider(
+                              color: Color(0xFF3B5226),
+                              thickness: 1,
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Total Transaksi',
+                                  style: TextStyle(
+                                    color: Color(0xFF3B5226),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  order.total != null
+                                      ? NumberFormat.currency(
+                                          locale: 'id_ID',
+                                          symbol: 'Rp ',
+                                          decimalDigits: 0,
+                                        ).format(
+                                          double.tryParse(order.total!) ?? 0,
+                                        )
+                                      : '-',
+                                  style: const TextStyle(
+                                    color: Color(0xFF3B5226),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<AuthViewModel>(context).currentUser;
@@ -704,26 +1136,7 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                 _buildHomeTab(),
 
                 // 1: Transaksi
-                const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.receipt_long,
-                        size: 100,
-                        color: Color(0xFF3B5226),
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Halaman Transaksi',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF3B5226),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildTransactionTab(),
 
                 // 2: Costum (Get All)
                 _buildCostumTab(),
@@ -788,6 +1201,8 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
               final vm = Provider.of<CostumViewModel>(context, listen: false);
               vm.clearFilters();
               vm.fetchCostums(reset: true);
+            } else if (index == 1) {
+              Provider.of<OrderViewModel>(context, listen: false).fetchOrders();
             }
             setState(() {
               _selectedIndex = index;

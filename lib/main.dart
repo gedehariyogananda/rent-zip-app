@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'viewmodels/order_viewmodel.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'viewmodels/auth_viewmodel.dart';
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => NotificationViewModel()),
         ChangeNotifierProvider(create: (_) => CostumViewModel()),
+        ChangeNotifierProvider(create: (_) => OrderViewModel()),
       ],
       child: MaterialApp(
         title: 'Noctoriagoras Cosrent',

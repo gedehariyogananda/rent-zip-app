@@ -104,19 +104,23 @@ class _CostumDetailScreenState extends State<CostumDetailScreen> {
                               fit: BoxFit.cover,
                               errorBuilder: (c, e, s) => Container(
                                 color: Colors.white,
-                                child: const Icon(
-                                  Icons.image,
-                                  size: 50,
-                                  color: Colors.grey,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.image,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ),
                             )
                           : Container(
                               color: Colors.white,
-                              child: const Icon(
-                                Icons.image,
-                                size: 50,
-                                color: Colors.grey,
+                              child: const Center(
+                                child: Icon(
+                                  Icons.image,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                       // Gradient for smooth transition

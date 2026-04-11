@@ -111,7 +111,13 @@ class CostumViewModel extends ChangeNotifier {
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = response.data['data'];
-        final List<dynamic> items = data['data'] ?? [];
+
+        List<dynamic> items = [];
+        if (data is List) {
+          items = data;
+        } else if (data != null && data['data'] is List) {
+          items = data['data'];
+        }
 
         final newCostums = items
             .map((json) => CostumModel.fromJson(json))
@@ -123,9 +129,13 @@ class CostumViewModel extends ChangeNotifier {
           _costums.addAll(newCostums);
         }
 
-        _currentPage = data['current_page'] ?? 1;
-        _lastPage = data['last_page'] ?? 1;
-        _hasMoreData = _currentPage < _lastPage;
+        if (data is Map<String, dynamic> && data.containsKey('current_page')) {
+          _currentPage = data['current_page'] ?? 1;
+          _lastPage = data['last_page'] ?? 1;
+          _hasMoreData = _currentPage < _lastPage;
+        } else {
+          _hasMoreData = false;
+        }
       } else {
         if (reset)
           _setErrorMessage(

@@ -7,7 +7,7 @@ class CategoryModel {
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
-      id: json['id'] as int?,
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
       name: json['name'] as String?,
       type: json['type'] as String?,
     );
@@ -61,26 +61,36 @@ class CostumModel {
 
   factory CostumModel.fromJson(Map<String, dynamic> json) {
     return CostumModel(
-      id: json['id'] as int?,
+      id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
       photoUrl: json['photo_url'] as String?,
       name: json['name'] as String?,
       nameAnime: json['name_anime'] as String?,
       namaCosplayer: json['nama_cosplayer'] as String?,
       size: json['size'] as String?,
-      stock: json['stock'] as int?,
+      stock: json['stock'] != null
+          ? int.tryParse(json['stock'].toString())
+          : null,
       priceday: json['priceday'] != null
           ? double.tryParse(json['priceday'].toString())?.toInt()
           : null,
       lokasi: json['lokasi'] as String?,
       desc: json['desc'] as String?,
-      sourceAnimeCategoryId: json['source_anime_category_id'] as int?,
-      brandCostumCategoryId: json['brand_costum_category_id'] as int?,
+      sourceAnimeCategoryId: json['source_anime_category_id'] != null
+          ? int.tryParse(json['source_anime_category_id'].toString())
+          : null,
+      brandCostumCategoryId: json['brand_costum_category_id'] != null
+          ? int.tryParse(json['brand_costum_category_id'].toString())
+          : null,
       paxel: json['paxel'] as String?,
       beratJnt: json['berat_jnt'] != null
           ? double.tryParse(json['berat_jnt'].toString())
           : null,
-      rentedStock: json['rented_stock'] as int?,
-      availableStock: json['available_stock'] as int?,
+      rentedStock: json['rented_stock'] != null
+          ? int.tryParse(json['rented_stock'].toString())
+          : null,
+      availableStock: json['available_stock'] != null
+          ? int.tryParse(json['available_stock'].toString())
+          : null,
       sourceAnimeCategory: json['source_anime_category'] != null
           ? CategoryModel.fromJson(json['source_anime_category'])
           : null,
