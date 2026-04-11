@@ -25,7 +25,7 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> checkLoginStatus() async {
+  Future<bool> checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
     if (token != null) {
@@ -36,7 +36,9 @@ class AuthViewModel extends ChangeNotifier {
 
       // Ambil data profil terbaru saat aplikasi pertama kali dimuat
       await fetchProfile();
+      return true;
     }
+    return false;
   }
 
   // Cek Kredensial & Pengecekan Status Verifikasi

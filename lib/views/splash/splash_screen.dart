@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../auth/login_screen.dart';
+import '../home/member_dashboard_screen.dart';
+import '../home/admin_dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,15 +21,27 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToNext() async {
-    // Simulate loading or check auth status here
-    await Future.delayed(const Duration(seconds: 3));
+    final authVM = Provider.of<AuthViewModel>(context, listen: false);
+    final isLoggedIn = await authVM.checkLoginStatus();
+
+    await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    // Navigate to Login Screen
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
+    if (isLoggedIn) {
+      Widget dashboard = const MemberDashboardScreen();
+      if (authVM.currentUser?.role == 'admin') {
+        dashboard = const AdminDashboardScreen();
+      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => dashboard),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
   }
 
   @override
