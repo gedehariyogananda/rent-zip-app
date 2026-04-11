@@ -33,6 +33,9 @@ class AuthViewModel extends ChangeNotifier {
       // In a complete app, you'd fetch the user's profile from the API here
       _currentUser = UserModel(token: token);
       notifyListeners();
+
+      // Ambil data profil terbaru saat aplikasi pertama kali dimuat
+      await fetchProfile();
     }
   }
 
@@ -178,7 +181,10 @@ class AuthViewModel extends ChangeNotifier {
         'photo_with_nik': await MultipartFile.fromFile(photoWithNikPath),
       });
 
-      final response = await _apiClient.post('/profile', data: formData);
+      final response = await _apiClient.post(
+        '/profile/checkout',
+        data: formData,
+      );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         _setLoading(false);
@@ -186,6 +192,157 @@ class AuthViewModel extends ChangeNotifier {
       } else {
         _setErrorMessage(
           response.data['message'] ?? 'Failed to update profile',
+        );
+        _setLoading(false);
+        return false;
+      }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _setErrorMessage(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  // Fetch Profile
+  Future<Map<String, dynamic>?> fetchProfile() async {
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      final response = await _apiClient.get('/profile');
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final data = response.data['data'];
+        if (data != null) {
+          final String? currentToken = _currentUser?.token;
+          Map<String, dynamic> userData = Map<String, dynamic>.from(data);
+          if (currentToken != null) {
+            userData['token'] = currentToken;
+          }
+          _currentUser = UserModel.fromJson(userData);
+          notifyListeners();
+        }
+        _setLoading(false);
+        return data;
+      } else {
+        _setErrorMessage(response.data['message'] ?? 'Failed to fetch profile');
+        _setLoading(false);
+        return null;
+      }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      _setLoading(false);
+      return null;
+    } catch (e) {
+      _setErrorMessage(e.toString());
+      _setLoading(false);
+      return null;
+    }
+  }
+
+  // Update General Profile
+  Future<bool> updateProfileGeneral({
+    String? username,
+    String? email,
+    String? phone,
+    String? address,
+    String? nik,
+    String? noDarurat,
+    String? avatarPath,
+    String? ktpPhotoPath,
+    String? photoWithNikPath,
+  }) async {
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      Map<String, dynamic> mapData = {};
+      if (username != null && username.isNotEmpty) {
+        mapData['username'] = username;
+      }
+      if (email != null && email.isNotEmpty) {
+        mapData['email'] = email;
+      }
+      if (phone != null && phone.isNotEmpty) {
+        mapData['phone'] = phone;
+      }
+      if (address != null && address.isNotEmpty) {
+        mapData['address'] = address;
+      }
+      if (nik != null && nik.isNotEmpty) {
+        mapData['nik'] = nik;
+      }
+      if (noDarurat != null && noDarurat.isNotEmpty) {
+        mapData['no_darurat'] = noDarurat;
+      }
+
+      if (avatarPath != null && avatarPath.isNotEmpty) {
+        mapData['avatar'] = await MultipartFile.fromFile(avatarPath);
+      }
+      if (ktpPhotoPath != null && ktpPhotoPath.isNotEmpty) {
+        mapData['ktp_photo'] = await MultipartFile.fromFile(ktpPhotoPath);
+      }
+      if (photoWithNikPath != null && photoWithNikPath.isNotEmpty) {
+        mapData['photo_with_nik'] = await MultipartFile.fromFile(
+          photoWithNikPath,
+        );
+      }
+
+      FormData formData = FormData.fromMap(mapData);
+
+      final response = await _apiClient.post('/profile/update', data: formData);
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        await fetchProfile();
+        _setLoading(false);
+        return true;
+      } else {
+        _setErrorMessage(
+          response.data['message'] ?? 'Failed to update profile',
+        );
+        _setLoading(false);
+        return false;
+      }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _setErrorMessage(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  // Change Password
+  Future<bool> changePassword(
+    String currentPassword,
+    String newPassword,
+    String newPasswordConfirmation,
+  ) async {
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      final response = await _apiClient.post(
+        '/profile/change-password',
+        data: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+          'new_password_confirmation': newPasswordConfirmation,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        _setLoading(false);
+        return true;
+      } else {
+        _setErrorMessage(
+          response.data['message'] ?? 'Failed to change password',
         );
         _setLoading(false);
         return false;

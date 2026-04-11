@@ -14,6 +14,8 @@ import '../costum/costum_detail_screen.dart';
 import '../orders/order_detail_screen.dart';
 import '../events/all_events_screen.dart';
 import '../events/event_detail_screen.dart';
+import '../profile/edit_profile_screen.dart';
+import '../profile/change_password_screen.dart';
 
 class MemberDashboardScreen extends StatefulWidget {
   const MemberDashboardScreen({super.key});
@@ -458,6 +460,209 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildProfileTab(dynamic user) {
+    final cardColor = const Color(0xFFE8ECD7);
+    final textColor = const Color(0xFF3B5226);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Profile Card
+          Container(
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: textColor, width: 2),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(25),
+                    child:
+                        user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
+                        ? Image.network(
+                            user.avatarUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.person_outline,
+                              size: 30,
+                              color: textColor,
+                            ),
+                          )
+                        : Icon(
+                            Icons.person_outline,
+                            size: 30,
+                            color: textColor,
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user?.username ?? 'Member',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        user?.email ?? '-',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textColor.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Title
+          Text(
+            'Pengaturan Akun',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Menu Card
+          Container(
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Icon(Icons.person, color: textColor),
+                  title: Text(
+                    'Ubah Profil',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfileScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(
+                  height: 1,
+                  thickness: 0.5,
+                  color: Color(0xFFCED8AF),
+                ),
+                ListTile(
+                  leading: Icon(Icons.vpn_key, color: textColor),
+                  title: Text(
+                    'Ubah Kata Sandi',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChangePasswordScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(
+                  height: 1,
+                  thickness: 0.5,
+                  color: Color(0xFFCED8AF),
+                ),
+                ListTile(
+                  leading: Icon(Icons.receipt_long, color: textColor),
+                  title: Text(
+                    'Riwayat Rental',
+                    style: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 1; // Navigasi ke Transaksi
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Logout Card
+          Container(
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text(
+                'Log Out',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: _handleLogout,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1312,37 +1517,7 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
                 _buildCostumTab(),
 
                 // 3: Profil
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.person,
-                        size: 100,
-                        color: Color(0xFF3B5226),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Halo, ${user?.username ?? 'Member'}!',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3B5226),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: _handleLogout,
-                        icon: const Icon(Icons.logout),
-                        label: const Text('Logout'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildProfileTab(user),
               ],
             ),
           ),
@@ -1378,6 +1553,8 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
               vm.fetchCostums(reset: true);
             } else if (index == 1) {
               Provider.of<OrderViewModel>(context, listen: false).fetchOrders();
+            } else if (index == 3) {
+              Provider.of<AuthViewModel>(context, listen: false).fetchProfile();
             }
             setState(() {
               _selectedIndex = index;
