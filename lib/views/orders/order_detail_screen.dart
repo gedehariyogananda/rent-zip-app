@@ -335,61 +335,42 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 foregroundColor: Colors.white,
                               ),
                               onPressed: () async {
-                                final vm = Provider.of<OrderViewModel>(
-                                  context,
-                                  listen: false,
+                                Navigator.pop(context);
+                                final message =
+                                    'Halo Admin Noctoriagoras, saya sudah membayar pesanan dengan Kode Booking: ${order.codeBooking ?? '-'}. Mohon segera dikonfirmasi. Terima kasih!';
+                                final url = Uri.parse(
+                                  'whatsapp://send?phone=${AppConstants.whatsappNumber}&text=${Uri.encodeComponent(message)}',
                                 );
-                                final success = await vm.confirmPayment(
-                                  order.id,
+                                final fallbackUrl = Uri.parse(
+                                  'https://wa.me/${AppConstants.whatsappNumber}?text=${Uri.encodeComponent(message)}',
                                 );
-                                if (success) {
-                                  Navigator.pop(context);
-                                  final message =
-                                      'Halo Admin Noctoriagoras, saya sudah membayar pesanan dengan Kode Booking: ${order.codeBooking ?? '-'}. Mohon segera dikonfirmasi. Terima kasih!';
-                                  final url = Uri.parse(
-                                    'whatsapp://send?phone=${AppConstants.whatsappNumber}&text=${Uri.encodeComponent(message)}',
-                                  );
-                                  final fallbackUrl = Uri.parse(
-                                    'https://wa.me/${AppConstants.whatsappNumber}?text=${Uri.encodeComponent(message)}',
-                                  );
-                                  try {
-                                    if (await canLaunchUrl(url)) {
-                                      await launchUrl(url);
-                                    } else {
-                                      await launchUrl(
-                                        fallbackUrl,
-                                        mode: LaunchMode.externalApplication,
-                                      );
-                                    }
-                                  } catch (_) {
-                                    try {
-                                      await launchUrl(
-                                        fallbackUrl,
-                                        mode: LaunchMode.externalApplication,
-                                      );
-                                    } catch (_) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Gagal membuka WhatsApp',
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  }
-                                } else {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          vm.errorMessage ?? 'Gagal konfirmasi',
-                                        ),
-                                      ),
+                                try {
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url);
+                                  } else {
+                                    await launchUrl(
+                                      fallbackUrl,
+                                      mode: LaunchMode.externalApplication,
                                     );
+                                  }
+                                } catch (_) {
+                                  try {
+                                    await launchUrl(
+                                      fallbackUrl,
+                                      mode: LaunchMode.externalApplication,
+                                    );
+                                  } catch (_) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Gagal membuka WhatsApp',
+                                          ),
+                                        ),
+                                      );
+                                    }
                                   }
                                 }
                               },
