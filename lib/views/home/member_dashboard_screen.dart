@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/notification_viewmodel.dart';
 import '../auth/login_screen.dart';
+import '../notifications/notification_screen.dart';
 
 class MemberDashboardScreen extends StatefulWidget {
   const MemberDashboardScreen({super.key});
@@ -12,6 +14,17 @@ class MemberDashboardScreen extends StatefulWidget {
 }
 
 class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<NotificationViewModel>(
+        context,
+        listen: false,
+      ).fetchUnreadNotifications();
+    });
+  }
+
   Future<void> _handleLogout() async {
     final authVM = Provider.of<AuthViewModel>(context, listen: false);
     final success = await authVM.logout();
@@ -42,6 +55,56 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
       appBar: AppBar(
         title: const Text('Member Dashboard'),
         actions: [
+          Consumer<NotificationViewModel>(
+            builder: (context, notifVM, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationScreen(),
+                        ),
+                      ).then((_) {
+                        Provider.of<NotificationViewModel>(
+                          context,
+                          listen: false,
+                        ).fetchUnreadNotifications();
+                      });
+                    },
+                  ),
+                  if (notifVM.unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '${notifVM.unreadCount > 99 ? '99+' : notifVM.unreadCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
