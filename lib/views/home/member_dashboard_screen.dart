@@ -7,10 +7,13 @@ import '../../core/theme/app_theme.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
 import '../../viewmodels/costum_viewmodel.dart';
+import '../../viewmodels/event_viewmodel.dart';
 import '../auth/login_screen.dart';
 import '../notifications/notification_screen.dart';
 import '../costum/costum_detail_screen.dart';
 import '../orders/order_detail_screen.dart';
+import '../events/all_events_screen.dart';
+import '../events/event_detail_screen.dart';
 
 class MemberDashboardScreen extends StatefulWidget {
   const MemberDashboardScreen({super.key});
@@ -44,6 +47,10 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
         listen: false,
       ).fetchCostums(reset: true);
       Provider.of<CostumViewModel>(context, listen: false).fetchMasterData();
+      Provider.of<EventViewModel>(
+        context,
+        listen: false,
+      ).fetchEvents(reset: true, status: 'all', perPage: 3);
     });
 
     _scrollController.addListener(_onScroll);
@@ -274,6 +281,186 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
     }
   }
 
+  Widget _buildEventSlider() {
+    return Consumer<EventViewModel>(
+      builder: (context, vm, child) {
+        if (vm.isLoading && vm.events.isEmpty) {
+          return const SizedBox(
+            height: 180,
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF3B5226)),
+            ),
+          );
+        }
+
+        if (vm.events.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Event Terdekat',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF3B5226),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AllEventsScreen(),
+                        ),
+                      );
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF7CA66D),
+                    ),
+                    child: const Text('Lihat Semua'),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 180,
+              child: PageView.builder(
+                controller: PageController(viewportFraction: 0.85),
+                itemCount: vm.events.length > 3 ? 3 : vm.events.length,
+                itemBuilder: (context, index) {
+                  final event = vm.events[index];
+                  return GestureDetector(
+                    onTap: () {
+                      if (event.id != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                EventDetailScreen(eventId: event.id!),
+                          ),
+                        );
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 4.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            event.imageUrl != null && event.imageUrl!.isNotEmpty
+                                ? Image.network(
+                                    event.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      color: const Color(0xFFE8ECD7),
+                                      child: const Icon(
+                                        Icons.event,
+                                        size: 50,
+                                        color: Color(0xFF9EAA78),
+                                      ),
+                                    ),
+                                  )
+                                : Container(
+                                    color: const Color(0xFFE8ECD7),
+                                    child: const Icon(
+                                      Icons.event,
+                                      size: 50,
+                                      color: Color(0xFF9EAA78),
+                                    ),
+                                  ),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.7),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 16,
+                              left: 16,
+                              right: 16,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    event.name ?? 'Unknown Event',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.calendar_today,
+                                        color: Colors.white70,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        event.formattedDate ??
+                                            event.date ??
+                                            '-',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildTopBar() {
     return Container(
       color: const Color(0xFF9EAA78), // Top bar dark green
@@ -369,6 +556,10 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
   Widget _buildHomeTab() {
     return RefreshIndicator(
       onRefresh: () async {
+        Provider.of<EventViewModel>(
+          context,
+          listen: false,
+        ).fetchEvents(reset: true, status: 'all', perPage: 3);
         await Provider.of<CostumViewModel>(
           context,
           listen: false,
@@ -379,43 +570,9 @@ class _MemberDashboardScreenState extends State<MemberDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 16),
-            // Green Banner (Coming Soon)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              decoration: BoxDecoration(
-                color: const Color(0xFF7CA66D), // Slightly darker green
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Column(
-                children: [
-                  Center(
-                    child: Text(
-                      'COMING SOON',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.circle, size: 10, color: Colors.white70),
-                      SizedBox(width: 8),
-                      Icon(Icons.circle, size: 10, color: Colors.white),
-                      SizedBox(width: 8),
-                      Icon(Icons.circle, size: 10, color: Colors.white70),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 8),
+            _buildEventSlider(),
+            const SizedBox(height: 8),
             // Costum Terpopuler
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),

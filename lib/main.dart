@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/costum_viewmodel.dart';
 import 'viewmodels/notification_viewmodel.dart';
+import 'viewmodels/event_viewmodel.dart';
 import 'views/splash/splash_screen.dart';
 
 void main() {
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationViewModel()),
         ChangeNotifierProvider(create: (_) => CostumViewModel()),
         ChangeNotifierProvider(create: (_) => OrderViewModel()),
+        ChangeNotifierProvider(create: (_) => EventViewModel()),
       ],
       child: MaterialApp(
         title: 'Noctoriagoras Cosrent',
