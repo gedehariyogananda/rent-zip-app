@@ -1,5 +1,6 @@
 class OrderModel {
   final int? id;
+  final int? userId;
   final String? codeBooking;
   final String? status;
   final String? qris;
@@ -7,10 +8,12 @@ class OrderModel {
   final String? tglSewa;
   final String? tglPengembalian;
   final String? createdAt;
+  final Map<String, dynamic>? user;
   final List<OrderItemModel>? items;
 
   OrderModel({
     this.id,
+    this.userId,
     this.codeBooking,
     this.status,
     this.qris,
@@ -18,12 +21,14 @@ class OrderModel {
     this.tglSewa,
     this.tglPengembalian,
     this.createdAt,
+    this.user,
     this.items,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       id: json['id'] as int?,
+      userId: json['user_id'] as int?,
       codeBooking: json['code_booking'] as String?,
       status: json['status'] as String?,
       qris: json['qris'] as String?,
@@ -31,6 +36,7 @@ class OrderModel {
       tglSewa: json['tgl_sewa'] as String?,
       tglPengembalian: json['tgl_pengembalian'] as String?,
       createdAt: json['created_at'] as String?,
+      user: json['user'] as Map<String, dynamic>?,
       items: json['items'] != null
           ? (json['items'] as List)
                 .map((e) => OrderItemModel.fromJson(e))

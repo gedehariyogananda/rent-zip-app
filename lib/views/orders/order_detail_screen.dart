@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
+import '../../viewmodels/admin_order_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/order_viewmodel.dart';
 
@@ -17,6 +18,12 @@ class OrderDetailScreen extends StatefulWidget {
 }
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  bool get _isAdmin {
+    final authVM = Provider.of<AuthViewModel>(context, listen: false);
+    return authVM.currentUser?.roleId == 1 ||
+        authVM.currentUser?.role?.toLowerCase() == 'admin';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -24,7 +31,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       Provider.of<OrderViewModel>(
         context,
         listen: false,
-      ).fetchOrderById(widget.orderId);
+      ).fetchOrderById(widget.orderId, isAdmin: _isAdmin);
     });
   }
 
@@ -90,7 +97,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => orderVM.fetchOrderById(widget.orderId),
+                    onPressed: () => orderVM.fetchOrderById(
+                      widget.orderId,
+                      isAdmin: _isAdmin,
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3B5226),
                     ),
@@ -138,7 +148,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       const Divider(color: Color(0xFF3B5226), thickness: 0.5),
                       _buildInfoRow('Status', _formatStatus(order.status)),
                       const Divider(color: Color(0xFF3B5226), thickness: 0.5),
-                      if (order.status?.toLowerCase() == 'pending') ...[
+                      if (order.status?.toLowerCase() == 'pending' &&
+                          !_isAdmin) ...[
                         _buildQrisRow(context, order),
                         const Divider(color: Color(0xFF3B5226), thickness: 0.5),
                       ],
@@ -257,10 +268,244 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     padding: EdgeInsets.all(16.0),
                     child: Text('Tidak ada item.'),
                   ),
+
+                // Admin Actions
+                Consumer<AuthViewModel>(
+                  builder: (context, authVM, child) {
+                    // Cek apakah admin (berdasarkan roleId atau string role)
+                    final isAdmin =
+                        authVM.currentUser?.roleId == 1 ||
+                        authVM.currentUser?.role?.toLowerCase() == 'admin';
+                    if (!isAdmin) return const SizedBox.shrink();
+
+                    return Consumer<AdminOrderViewModel>(
+                      builder: (context, adminVM, child) {
+                        return Column(
+                          children: [
+                            const SizedBox(height: 24),
+                            if (order.status == 'pending') ...[
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () {
+                                        _showAdminActionDialog(
+                                          context,
+                                          title: 'Tolak Pesanan',
+                                          content:
+                                              'Apakah Anda yakin ingin menolak atau membatalkan pesanan ini?',
+                                          isDestructive: true,
+                                          onConfirm: () async {
+                                            final success = await adminVM
+                                                .cancelOrder(order.id!);
+                                            if (success && context.mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Pesanan ditolak/dibatalkan',
+                                                  ),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                              orderVM.fetchOrderById(
+                                                widget.orderId,
+                                                isAdmin: _isAdmin,
+                                              );
+                                            }
+                                          },
+                                        );
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                        side: const BorderSide(
+                                          color: Colors.red,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Tolak Pesanan',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    flex: 1,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        _showAdminActionDialog(
+                                          context,
+                                          title: 'Konfirmasi Pembayaran',
+                                          content:
+                                              'Apakah Anda yakin ingin memverifikasi pembayaran pesanan ini?',
+                                          onConfirm: () async {
+                                            final success = await adminVM
+                                                .verifyPayment(order.id!);
+                                            if (success && context.mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Pembayaran dikonfirmasi',
+                                                  ),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                              orderVM.fetchOrderById(
+                                                widget.orderId,
+                                                isAdmin: _isAdmin,
+                                              );
+                                            }
+                                          },
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFF3B5226,
+                                        ),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Konfirmasi',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ] else if (order.status == 'paid') ...[
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    _showAdminActionDialog(
+                                      context,
+                                      title: 'Selesaikan Pesanan',
+                                      content:
+                                          'Konfirmasi bahwa kostum telah dikembalikan dan selesaikan pesanan?',
+                                      onConfirm: () async {
+                                        final success = await adminVM
+                                            .completeOrder(order.id!);
+                                        if (success && context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Pesanan berhasil diselesaikan',
+                                              ),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                          orderVM.fetchOrderById(
+                                            widget.orderId,
+                                            isAdmin: _isAdmin,
+                                          );
+                                        }
+                                      },
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF3B5226),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Barang Sudah Dikembalikan',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _showAdminActionDialog(
+    BuildContext context, {
+    required String title,
+    required String content,
+    required VoidCallback onConfirm,
+    bool isDestructive = false,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFFE8ECD7),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF3B5226),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          content,
+          style: const TextStyle(color: Color(0xFF3B5226)),
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: Colors.grey.shade700),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onConfirm();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDestructive
+                  ? Colors.red
+                  : const Color(0xFF3B5226),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Ya'),
+          ),
+        ],
       ),
     );
   }

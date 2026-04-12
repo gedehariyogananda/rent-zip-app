@@ -3,17 +3,14 @@ import 'package:dio/dio.dart';
 import '../core/network/api_client.dart';
 import '../models/order_model.dart';
 
-class OrderViewModel extends ChangeNotifier {
+class AdminOrderViewModel extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
 
   List<OrderModel> _orders = [];
-  OrderModel? _selectedOrder;
-
   bool _isLoading = false;
   String? _errorMessage;
 
   List<OrderModel> get orders => _orders;
-  OrderModel? get selectedOrder => _selectedOrder;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -27,9 +24,10 @@ class OrderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Fetch all orders
+  // Fetch all orders for admin
   Future<void> fetchOrders({
     String? status,
+    String? search,
     String? startDate,
     String? endDate,
   }) async {
@@ -39,25 +37,27 @@ class OrderViewModel extends ChangeNotifier {
     try {
       final queryParams = <String, dynamic>{};
       if (status != null && status.isNotEmpty) queryParams['status'] = status;
-      if (startDate != null && startDate.isNotEmpty)
+      if (search != null && search.isNotEmpty) queryParams['search'] = search;
+      if (startDate != null && startDate.isNotEmpty) {
         queryParams['start_date'] = startDate;
-      if (endDate != null && endDate.isNotEmpty)
+      }
+      if (endDate != null && endDate.isNotEmpty) {
         queryParams['end_date'] = endDate;
+      }
 
       final response = await _apiClient.get(
-        '/orders',
+        '/admin/orders',
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = response.data['data'];
-
-        // Handle both paginated response or direct list response
         final List<dynamic> items = data is List ? data : (data['data'] ?? []);
-
         _orders = items.map((json) => OrderModel.fromJson(json)).toList();
       } else {
-        _setErrorMessage(response.data['message'] ?? 'Failed to fetch orders');
+        _setErrorMessage(
+          response.data['message'] ?? 'Failed to fetch admin orders',
+        );
       }
     } on DioException catch (e) {
       _handleDioError(e);
@@ -68,52 +68,25 @@ class OrderViewModel extends ChangeNotifier {
     }
   }
 
-  // Fetch order detail by ID
-  Future<void> fetchOrderById(int id, {bool isAdmin = false}) async {
-    _setLoading(true);
-    _setErrorMessage(null);
-    _selectedOrder = null;
-
-    try {
-      final endpoint = isAdmin ? '/admin/orders/$id' : '/orders/$id';
-      final response = await _apiClient.get(endpoint);
-
-      if (response.statusCode == 200 && response.data['success'] == true) {
-        final data = response.data['data'];
-        if (data != null) {
-          _selectedOrder = OrderModel.fromJson(data);
-        }
-      } else {
-        _setErrorMessage(response.data['message'] ?? 'Order not found');
-      }
-    } on DioException catch (e) {
-      _handleDioError(e);
-    } catch (e) {
-      _setErrorMessage(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Confirm payment
-  Future<bool> confirmPayment(int id) async {
+  // Verify payment
+  Future<bool> verifyPayment(int id) async {
     _setLoading(true);
     _setErrorMessage(null);
 
     try {
-      final response = await _apiClient.put('/orders/$id/confirm-payment');
+      final response = await _apiClient.patch('/admin/orders/$id/verify');
 
       if (response.statusCode == 200 && response.data['success'] == true) {
-        if (_selectedOrder != null && _selectedOrder!.id == id) {
-          final data = response.data['data'];
-          if (data != null) {
-            _selectedOrder = OrderModel.fromJson(data);
-          }
+        // Optionally update the local list or re-fetch
+        final index = _orders.indexWhere((o) => o.id == id);
+        if (index != -1) {
+          // You might want to do a full refetch here instead, depending on your UI needs
+          fetchOrders();
         }
         return true;
       } else {
         _setErrorMessage(
-          response.data['message'] ?? 'Failed to confirm payment',
+          response.data['message'] ?? 'Failed to verify payment',
         );
         return false;
       }
@@ -128,45 +101,55 @@ class OrderViewModel extends ChangeNotifier {
     }
   }
 
-  // Create a new order
-  Future<Map<String, dynamic>> createOrder(
-    int costumId,
-    int pcs,
-    String startDate,
-    String endDate,
-  ) async {
+  // Cancel order
+  Future<bool> cancelOrder(int id) async {
     _setLoading(true);
     _setErrorMessage(null);
 
     try {
-      final response = await _apiClient.post(
-        '/orders',
-        data: {
-          'costum_id': costumId,
-          'pcs': pcs,
-          'start_date': startDate,
-          'end_date': endDate,
-        },
-      );
+      final response = await _apiClient.patch('/admin/orders/$id/cancel');
 
-      if ((response.statusCode == 200 || response.statusCode == 201) &&
-          response.data['success'] == true) {
-        final data = response.data;
-        return {
-          'success': true,
-          'verified': data['verified'] ?? true,
-          'order_id': data['data']?['id'],
-        };
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        fetchOrders(); // Refresh list to reflect changes
+        return true;
       } else {
-        _setErrorMessage(response.data['message'] ?? 'Failed to create order');
-        return {'success': false};
+        _setErrorMessage(response.data['message'] ?? 'Failed to cancel order');
+        return false;
       }
     } on DioException catch (e) {
       _handleDioError(e);
-      return {'success': false};
+      return false;
     } catch (e) {
       _setErrorMessage(e.toString());
-      return {'success': false};
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Complete/Done order
+  Future<bool> completeOrder(int id) async {
+    _setLoading(true);
+    _setErrorMessage(null);
+
+    try {
+      final response = await _apiClient.patch('/admin/orders/$id/done');
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        fetchOrders(); // Refresh list to reflect changes
+        return true;
+      } else {
+        _setErrorMessage(
+          response.data['message'] ?? 'Failed to complete order',
+        );
+        return false;
+      }
+    } on DioException catch (e) {
+      _handleDioError(e);
+      return false;
+    } catch (e) {
+      _setErrorMessage(e.toString());
+      return false;
     } finally {
       _setLoading(false);
     }

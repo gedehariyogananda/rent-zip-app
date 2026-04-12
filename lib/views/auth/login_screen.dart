@@ -42,7 +42,8 @@ class _LoginScreenState extends State<LoginScreen> {
               context,
             ).showSnackBar(const SnackBar(content: Text('Login Successful!')));
             Widget dashboard = const MemberDashboardScreen();
-            if (authVM.currentUser!.role == 'admin') {
+            if (authVM.currentUser!.role == 'admin' ||
+                authVM.currentUser!.roleId == 1) {
               dashboard = const AdminDashboardScreen();
             }
 

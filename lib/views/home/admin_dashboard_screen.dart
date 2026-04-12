@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/theme/app_theme.dart';
-import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
-import '../auth/login_screen.dart';
-import '../notifications/notification_screen.dart';
+import 'admin_order_screen.dart';
+import 'admin_qris_screen.dart';
+import '../profile/admin_profile_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -15,13 +14,14 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  int _selectedIndex = 0;
   Timer? _notificationTimer;
 
-  @override
-  void dispose() {
-    _notificationTimer?.cancel();
-    super.dispose();
-  }
+  final List<Widget> _screens = [
+    const AdminOrderScreen(),
+    const AdminQrisScreen(),
+    const AdminProfileScreen(),
+  ];
 
   @override
   void initState() {
@@ -42,159 +42,53 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     });
   }
 
-  Future<void> _handleLogout() async {
-    final authVM = Provider.of<AuthViewModel>(context, listen: false);
-    final success = await authVM.logout();
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
 
-    if (mounted) {
-      if (success || authVM.currentUser == null) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authVM.errorMessage ?? 'Logout failed'),
-            backgroundColor: AppTheme.errorColor,
-          ),
-        );
-      }
-    }
+  void _onItemTapped(int index) {
+    Provider.of<NotificationViewModel>(
+      context,
+      listen: false,
+    ).fetchUnreadNotifications();
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<AuthViewModel>(context).currentUser;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        backgroundColor: Colors.blueGrey, // Distinctive color for Admin
-        actions: [
-          Consumer<NotificationViewModel>(
-            builder: (context, notifVM, child) {
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationScreen(),
-                        ),
-                      ).then((_) {
-                        Provider.of<NotificationViewModel>(
-                          context,
-                          listen: false,
-                        ).fetchUnreadNotifications();
-                      });
-                    },
-                  ),
-                  if (notifVM.unreadCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '${notifVM.unreadCount > 99 ? '99+' : notifVM.unreadCount}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Logout'),
-                  content: const Text('Are you sure you want to log out?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.textColor,
-                      ),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _handleLogout();
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.errorColor,
-                      ),
-                      child: const Text('Logout'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.admin_panel_settings,
-              size: 100,
-              color: Colors.blueGrey,
+      backgroundColor: const Color(0xFFCED8AF),
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Halo Admin, ${user?.username ?? 'Super User'}!',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueGrey,
-              ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          backgroundColor: const Color(0xFFCED8AF),
+          selectedItemColor: const Color(0xFF35542E),
+          unselectedItemColor: const Color(0xFF7CA66D),
+          type: BottomNavigationBarType.fixed,
+          showUnselectedLabels: true,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.receipt_long),
+              label: 'Transaksi',
             ),
-            const SizedBox(height: 8),
-            Text(
-              user?.email ?? '',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 32),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Role: ${user?.role?.toUpperCase() ?? 'ADMIN'}',
-                style: const TextStyle(
-                  color: Colors.blueGrey,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.qr_code_2), label: 'QRIS'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
           ],
         ),
       ),

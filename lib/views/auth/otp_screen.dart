@@ -38,7 +38,8 @@ class _OtpScreenState extends State<OtpScreen> {
             const SnackBar(content: Text('OTP Verified Successfully!')),
           );
           Widget dashboard = const MemberDashboardScreen();
-          if (authVM.currentUser?.role == 'admin') {
+          if (authVM.currentUser?.role == 'admin' ||
+              authVM.currentUser?.roleId == 1) {
             dashboard = const AdminDashboardScreen();
           }
 

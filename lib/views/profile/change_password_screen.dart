@@ -115,9 +115,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Scaffold(
       backgroundColor: _bgColor,
       appBar: AppBar(
-        title: const Text('Ubah Kata Sandi'),
+        title: const Text(
+          'Ubah Kata Sandi',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: _textColor,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

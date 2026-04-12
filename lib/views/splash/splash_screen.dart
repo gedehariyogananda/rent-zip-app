@@ -29,7 +29,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (isLoggedIn) {
       Widget dashboard = const MemberDashboardScreen();
-      if (authVM.currentUser?.role == 'admin') {
+      if (authVM.currentUser?.role == 'admin' ||
+          authVM.currentUser?.roleId == 1) {
         dashboard = const AdminDashboardScreen();
       }
       Navigator.pushReplacement(
